@@ -258,22 +258,14 @@ describe('Test module: flow.js', function () {
         });
         it('should call all functions if one of functions gets error', function () {
             var func = sinon.spy(function (data, callback) {
-                if (data === 3) {
-                    callback('error', data);
-                    return;
-                }
-                callback(null, data);
+                callback(data === 3 ? 'error' : null, data)
             });
             flow.map([1, 2, 3], func, function () {});
             func.calledThrice.should.be.true;
         });
         it('should call main callback with error if one of functions gets error', function () {
             var func = function (data, callback) {
-                if (data === 3) {
-                    callback('error', data);
-                    return;
-                }
-                callback(null, data);
+                callback(data === 3 ? 'error' : null, data)
             };
             var mainCb = sinon.spy();
             flow.map([1, 2, 3], func, mainCb);
