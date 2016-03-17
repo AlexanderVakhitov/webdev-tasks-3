@@ -22,6 +22,24 @@ describe('Test module: flow.js', function () {
             secondFunc.calledOnce.should.be.true;
             mainCb.calledOnce.should.be.true;
         });
+        it('should call all async functions and main callback', function (done) {
+            var firstFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 0, null);
+            });
+            var secondFunc = sinon.spy(function (data, callback) {
+                setTimeout(callback, 0, null);
+            });
+            var mainCb = sinon.spy(function(error, data) {
+                firstFunc.calledOnce.should.be.true;
+                secondFunc.calledOnce.should.be.true;
+                mainCb.calledOnce.should.be.true;
+                done();
+            });
+            flow.serial([
+                firstFunc,
+                secondFunc
+            ], mainCb);
+        });
         it('should call second function after first function', function () {
             var firstFunc = sinon.spy(function (callback) {
                 callback(null, 'result');
@@ -31,6 +49,7 @@ describe('Test module: flow.js', function () {
                 firstFunc,
                 secondFunc
             ], function () {});
+            secondFunc.calledOnce.should.be.true;
             secondFunc.calledAfter(firstFunc).should.be.true;
         });
         it('should call second function with results of first function', function () {
@@ -43,6 +62,23 @@ describe('Test module: flow.js', function () {
                 secondFunc
             ], function () {});
             secondFunc.calledWith('result').should.be.true;
+        });
+        it('should call all async functions in right order', function (done) {
+            var firstFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 0, null, 'data1');
+            });
+            var secondFunc = sinon.spy(function (data, callback) {
+                setTimeout(callback, 0, null, data + 'data2');
+            });
+            var mainCb = sinon.spy(function(error, data) {
+                data.should.be.equal('data1data2');
+                secondFunc.calledAfter(firstFunc).should.be.true;
+                done();
+            });
+            flow.serial([
+                firstFunc,
+                secondFunc
+            ], mainCb);
         });
         it('should not call second function after error in first function', function () {
             var firstFunc = sinon.spy(function (callback) {
@@ -90,6 +126,24 @@ describe('Test module: flow.js', function () {
             secondFunc.calledOnce.should.be.true;
             mainCb.calledOnce.should.be.true;
         });
+        it('should call all async functions and main callback', function (done) {
+            var firstFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 0, null);
+            });
+            var secondFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 0, null);
+            });
+            var mainCb = sinon.spy(function(error, data) {
+                firstFunc.calledOnce.should.be.true;
+                secondFunc.calledOnce.should.be.true;
+                mainCb.calledOnce.should.be.true;
+                done();
+            });
+            flow.parallel([
+                firstFunc,
+                secondFunc
+            ], mainCb);
+        });
         it('should call callback with expected array of results', function () {
             var firstFunc = function (callback) {
                 callback(null, 'data1');
@@ -104,6 +158,22 @@ describe('Test module: flow.js', function () {
             ], mainCb);
             mainCb.calledWith(null, ['data1', 'data2']).should.be.true;
         });
+        it('should call callback with expected array of results (async functions, different time)', function (done) {
+            var firstFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 0, null, 'data1');
+            });
+            var secondFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 1000, null, 'data2');
+            });
+            var mainCb = sinon.spy(function(error, data) {
+                mainCb.calledWith(null, ['data1', 'data2']).should.be.true;
+                done();
+            });
+            flow.parallel([
+                firstFunc,
+                secondFunc
+            ], mainCb);
+        });
         it('should call all functions if one of functions gets error', function () {
             var firstFunc = sinon.spy(function (callback) {
                 callback(null, 'data');
@@ -117,6 +187,24 @@ describe('Test module: flow.js', function () {
             ], function () {});
             firstFunc.calledOnce.should.be.true;
             secondFunc.calledOnce.should.be.true;
+        });
+        it('should call all functions if one of functions gets error (async functions, different time)', function (done) {
+            var firstFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 0, 'error');
+            });
+            var secondFunc = sinon.spy(function (callback) {
+                setTimeout(callback, 500, null);
+            });
+            var mainCb = sinon.spy(function(error, data) {
+                firstFunc.calledOnce.should.be.true;
+                secondFunc.calledOnce.should.be.true;
+                mainCb.calledWith('error').should.be.true;
+                done();
+            });
+            flow.parallel([
+                firstFunc,
+                secondFunc
+            ], mainCb);
         });
         it('should call main callback with error if one of functions gets error', function () {
             var firstFunc = function (callback) {
@@ -157,6 +245,16 @@ describe('Test module: flow.js', function () {
             var mainCb = sinon.spy();
             flow.map([1, 2, 3], func, mainCb);
             mainCb.calledWith(null, [1, 2, 3]).should.be.true;
+        });
+        it('should call main callback with expected data (async function)', function (done) {
+            var func = function (data, callback) {
+                setTimeout(callback, 0, null, data);
+            };
+            var mainCb = sinon.spy(function(error, data) {
+                mainCb.calledWith(null, [1, 2, 3]).should.be.true;
+                done();
+            });
+            flow.map([1, 2, 3], func, mainCb);
         });
         it('should call all functions if one of functions gets error', function () {
             var func = sinon.spy(function (data, callback) {

@@ -7,6 +7,7 @@
     "sinon": "^1.17.3"
   },
   "scripts": {
+    "test": "mocha test/*",
     "lint": "jscs ."
   }
 }
